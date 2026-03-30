@@ -31,14 +31,17 @@ def pridat_ukol_db(connection, nazev, popis):
 def pridat_ukol(connection):
     """
     Načte údaje od uživatele a přidá úkol.
+    Při neplatném vstupu se ptá znovu.
     """
-    nazev = input("Zadej název úkolu: ")
-    popis = input("Zadej popis úkolu: ")
+    while True:
+        nazev = input("Zadej název úkolu: ").strip()
+        popis = input("Zadej popis úkolu: ").strip()
 
-    if pridat_ukol_db(connection, nazev, popis):
-        print("✅ Úkol byl úspěšně přidán.")
-    else:
-        print("❌ Název i popis jsou povinné.")
+        if pridat_ukol_db(connection, nazev, popis):
+            print("✅ Úkol byl úspěšně přidán.")
+            break
+
+        print("❌ Název i popis jsou povinné. Zkus to znovu.")
 
 
 def zobrazit_ukoly(connection):
@@ -139,33 +142,24 @@ def aktualizovat_ukol_db(connection, ukol_id, novy_stav):
 def aktualizovat_ukol(connection):
     """
     Načte od uživatele ID a nový stav a provede aktualizaci.
+    Při neplatném vstupu se ptá znovu.
     """
-    zobraz_vsechny_ukoly(connection)
+    while True:
+        ukoly = zobraz_vsechny_ukoly(connection)
+        if not ukoly:
+            return
 
-    try:
-        ukol_id = int(input("\nZadej ID úkolu, který chceš aktualizovat: "))
-    except ValueError:
-        print("❌ ID musí být číslo.")
-        return
+        try:
+            ukol_id = int(input("\nZadej ID úkolu, který chceš aktualizovat: "))
+        except ValueError:
+            print("❌ ID musí být číslo. Zkus to znovu.")
+            continue
 
-    print("\nVyber nový stav:")
-    print("1. Probíhá")
-    print("2. Hotovo")
+        print("\nVyber nový stav:")
+        print("1. Probíhá")
+        print("2. Hotovo")
 
-    volba = input("Tvoje volba: ").strip()
-
-    if volba == "1":
-        novy_stav = "Probíhá"
-    elif volba == "2":
-        novy_stav = "Hotovo"
-    else:
-        print("❌ Neplatná volba stavu.")
-        return
-
-    if aktualizovat_ukol_db(connection, ukol_id, novy_stav):
-        print("✅ Stav úkolu byl úspěšně aktualizován.")
-    else:
-        print("❌ Úkol s tímto ID neexistuje nebo byl zadán neplatný stav.")
+        volba = input("Tvoje volba: ").strip()
 
 
 def odstranit_ukol_db(connection, ukol_id):
@@ -195,22 +189,29 @@ def odstranit_ukol_db(connection, ukol_id):
 def odstranit_ukol(connection):
     """
     Načte od uživatele ID a odstraní úkol.
+    Při neplatném vstupu se ptá znovu.
     """
-    zobraz_vsechny_ukoly(connection)
+    while True:
+        ukoly = zobraz_vsechny_ukoly(connection)
+        if not ukoly:
+            return
 
-    try:
-        ukol_id = int(input("\nZadej ID úkolu, který chceš odstranit: "))
-    except ValueError:
-        print("❌ ID musí být číslo.")
-        return
+        try:
+            ukol_id = int(input("\nZadej ID úkolu, který chceš odstranit: "))
+        except ValueError:
+            print("❌ ID musí být číslo. Zkus to znovu.")
+            continue
 
-    potvrzeni = input("Opravdu chceš tento úkol smazat? (ano/ne): ").strip().lower()
+        potvrzeni = input(
+            "Opravdu chceš tento úkol smazat? (ano/ne): "
+        ).strip().lower()
 
-    if potvrzeni != "ano":
-        print("Mazání bylo zrušeno.")
-        return
+        if potvrzeni != "ano":
+            print("Mazání bylo zrušeno.")
+            return
 
-    if odstranit_ukol_db(connection, ukol_id):
-        print("✅ Úkol byl úspěšně odstraněn.")
-    else:
-        print("❌ Úkol s tímto ID neexistuje.")
+        if odstranit_ukol_db(connection, ukol_id):
+            print("✅ Úkol byl úspěšně odstraněn.")
+            break
+
+        print("❌ Úkol s tímto ID neexistuje. Zkus to znovu.")

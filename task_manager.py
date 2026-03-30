@@ -24,7 +24,7 @@ def pridat_ukol_db(connection, nazev, popis):
         cursor.close()
         return True
     except Error as e:
-        print(f"❌ Chyba při přidávání úkolu: {e}")
+        print(f"Chyba při přidávání úkolu: {e}")
         return False
 
 
@@ -38,10 +38,10 @@ def pridat_ukol(connection):
         popis = input("Zadej popis úkolu: ").strip()
 
         if pridat_ukol_db(connection, nazev, popis):
-            print("✅ Úkol byl úspěšně přidán.")
+            print("Úkol byl úspěšně přidán.")
             break
 
-        print("❌ Název i popis jsou povinné. Zkus to znovu.")
+        print("Název i popis jsou povinné. Zkus to znovu.")
 
 
 def zobrazit_ukoly(connection):
@@ -62,7 +62,7 @@ def zobrazit_ukoly(connection):
         cursor.close()
 
         if not ukoly:
-            print("📭 Seznam úkolů je prázdný.")
+            print("Seznam úkolů je prázdný.")
             return
 
         print("\n--- SEZNAM ÚKOLŮ ---")
@@ -73,12 +73,13 @@ def zobrazit_ukoly(connection):
             )
 
     except Error as e:
-        print(f"❌ Chyba při zobrazování úkolů: {e}")
+        print(f"Chyba při zobrazování úkolů: {e}")
 
 
 def zobraz_vsechny_ukoly(connection):
     """
     Zobrazí všechny úkoly bez filtru.
+    Vrací seznam úkolů.
     """
     query = """
     SELECT id, nazev, popis, stav
@@ -93,8 +94,8 @@ def zobraz_vsechny_ukoly(connection):
         cursor.close()
 
         if not ukoly:
-            print("📭 Seznam úkolů je prázdný.")
-            return
+            print("Seznam úkolů je prázdný.")
+            return []
 
         print("\n--- VŠECHNY ÚKOLY ---")
         for ukol in ukoly:
@@ -103,8 +104,11 @@ def zobraz_vsechny_ukoly(connection):
                 f"Popis: {ukol[2]} | Stav: {ukol[3]}"
             )
 
+        return ukoly
+
     except Error as e:
-        print(f"❌ Chyba při zobrazování úkolů: {e}")
+        print(f"Chyba při zobrazování úkolů: {e}")
+        return []
 
 
 def aktualizovat_ukol_db(connection, ukol_id, novy_stav):
@@ -135,7 +139,7 @@ def aktualizovat_ukol_db(connection, ukol_id, novy_stav):
         return True
 
     except Error as e:
-        print(f"❌ Chyba při aktualizaci úkolu: {e}")
+        print(f"Chyba při aktualizaci úkolu: {e}")
         return False
 
 
@@ -152,7 +156,7 @@ def aktualizovat_ukol(connection):
         try:
             ukol_id = int(input("\nZadej ID úkolu, který chceš aktualizovat: "))
         except ValueError:
-            print("❌ ID musí být číslo. Zkus to znovu.")
+            print("ID musí být číslo. Zkus to znovu.")
             continue
 
         print("\nVyber nový stav:")
@@ -160,6 +164,20 @@ def aktualizovat_ukol(connection):
         print("2. Hotovo")
 
         volba = input("Tvoje volba: ").strip()
+
+        if volba == "1":
+            novy_stav = "Probíhá"
+        elif volba == "2":
+            novy_stav = "Hotovo"
+        else:
+            print("Neplatná volba stavu. Zkus to znovu.")
+            continue
+
+        if aktualizovat_ukol_db(connection, ukol_id, novy_stav):
+            print("Stav úkolu byl úspěšně aktualizován.")
+            break
+
+        print("Úkol s tímto ID neexistuje. Zkus to znovu.")
 
 
 def odstranit_ukol_db(connection, ukol_id):
@@ -182,7 +200,7 @@ def odstranit_ukol_db(connection, ukol_id):
         return True
 
     except Error as e:
-        print(f"❌ Chyba při odstraňování úkolu: {e}")
+        print(f"Chyba při odstraňování úkolu: {e}")
         return False
 
 
@@ -199,7 +217,7 @@ def odstranit_ukol(connection):
         try:
             ukol_id = int(input("\nZadej ID úkolu, který chceš odstranit: "))
         except ValueError:
-            print("❌ ID musí být číslo. Zkus to znovu.")
+            print("ID musí být číslo. Zkus to znovu.")
             continue
 
         potvrzeni = input(
@@ -211,7 +229,7 @@ def odstranit_ukol(connection):
             return
 
         if odstranit_ukol_db(connection, ukol_id):
-            print("✅ Úkol byl úspěšně odstraněn.")
+            print("Úkol byl úspěšně odstraněn.")
             break
 
-        print("❌ Úkol s tímto ID neexistuje. Zkus to znovu.")
+        print("Úkol s tímto ID neexistuje. Zkus to znovu.")

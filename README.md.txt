@@ -1,10 +1,8 @@
 # Vylepšený Task Manager
-
 Konzolová aplikace v Pythonu pro správu úkolů s využitím MySQL databáze.  
 Aplikace ukládá úkoly do databáze a umožňuje jejich správu pomocí CRUD operací (Create, Read, Update, Delete).
 
 ## Funkce
-
 - přidání úkolu
 - zobrazení úkolů (filtr: Nezahájeno, Probíhá)
 - aktualizace stavu úkolu
@@ -12,7 +10,6 @@ Aplikace ukládá úkoly do databáze a umožňuje jejich správu pomocí CRUD o
 - textové menu v konzoli
 
 ## Struktura projektu
-
 vylepseny_task_manager/
 - main.py
 - db.py
@@ -22,21 +19,20 @@ vylepseny_task_manager/
   - test_task_manager.py
 
 ## Použité technologie
-
 - Python
 - MySQL
 - mysql-connector-python
 - pytest
 
+## Požadavky
+- Python 3.14
+- MySQL Server
+
 ## Databáze
-
 Projekt používá dvě databáze:
-
 - task_manager_db (hlavní databáze)
 - task_manager_test_db (testovací databáze)
-
 Tabulka: ukoly
-
 - id (INT, primární klíč)
 - nazev (VARCHAR)
 - popis (TEXT)
@@ -44,29 +40,22 @@ Tabulka: ukoly
 - datum_vytvoreni (TIMESTAMP)
 
 ## Instalace
-
 Vytvoření virtuálního prostředí:
-
 python -m venv venv
 
 Aktivace prostředí (Windows):
-
 venv\Scripts\activate
 
 Instalace závislostí:
-
 python -m pip install -r requirements.txt
 
 ## Spuštění aplikace
-
 python main.py
 
 ## Spuštění testů
-
 python -m pytest -v
 
 ## Testování
-
 Testy ověřují:
 
 - přidání úkolu (pozitivní a negativní případ)
@@ -76,10 +65,8 @@ Testy ověřují:
 Testy používají testovací databázi a po každém spuštění mažou testovací data.
 
 ## Poznámky
-
 Přihlašovací údaje k databázi jsou uložené v souboru db.py.  
 V produkčním prostředí by měly být uloženy bezpečně mimo zdrojový kód.
 
 ## Stav projektu
-
 Projekt je funkční a obsahuje automatizované testy.

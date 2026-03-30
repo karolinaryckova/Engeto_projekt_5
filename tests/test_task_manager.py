@@ -1,234 +1,111 @@
-from mysql.connector import Error
+import pytest
+
+from db import pripojeni_db, vytvoreni_tabulky
+from task_manager import (
+    pridat_ukol_db,
+    aktualizovat_ukol_db,
+    odstranit_ukol_db
+)
 
 
-def pridat_ukol_db(connection, nazev, popis):
+@pytest.fixture
+def test_connection():
     """
-    Přidá nový úkol do databáze.
-    Vrací True při úspěchu, jinak False.
+    Připojí se k testovací databázi, připraví tabulku
+    a po testu uklidí testovací data.
     """
-    nazev = nazev.strip()
-    popis = popis.strip()
+    connection = pripojeni_db("task_manager_test_db")
+    vytvoreni_tabulky(connection)
 
-    if not nazev or not popis:
-        return False
+    cursor = connection.cursor()
+    cursor.execute("DELETE FROM ukoly")
+    connection.commit()
+    cursor.close()
 
-    query = """
-    INSERT INTO ukoly (nazev, popis)
-    VALUES (%s, %s)
-    """
+    yield connection
 
-    try:
-        cursor = connection.cursor()
-        cursor.execute(query, (nazev, popis))
-        connection.commit()
-        cursor.close()
-        return True
-    except Error as e:
-        print(f"Chyba při přidávání úkolu: {e}")
-        return False
+    cursor = connection.cursor()
+    cursor.execute("DELETE FROM ukoly")
+    connection.commit()
+    cursor.close()
+    connection.close()
 
 
-def pridat_ukol(connection):
-    """
-    Načte údaje od uživatele a přidá úkol.
-    Při prázdném vstupu se ptá znovu.
-    """
-    while True:
-        nazev = input("Zadej název úkolu: ").strip()
-        popis = input("Zadej popis úkolu: ").strip()
+def test_pridat_ukol_pozitivni(test_connection):
+    vysledek = pridat_ukol_db(test_connection, "Nakoupit", "Koupit mléko")
 
-        if pridat_ukol_db(connection, nazev, popis):
-            print("Úkol byl úspěšně přidán.")
-            break
+    assert vysledek is True
 
-        print("Název i popis jsou povinné. Zkus to znovu.")
+    cursor = test_connection.cursor()
+    cursor.execute(
+        "SELECT nazev, popis, stav FROM ukoly WHERE nazev = %s",
+        ("Nakoupit",)
+    )
+    ukol = cursor.fetchone()
+    cursor.close()
 
-
-def zobrazit_ukoly(connection):
-    """
-    Zobrazí úkoly se stavem Nezahájeno nebo Probíhá.
-    """
-    query = """
-    SELECT id, nazev, popis, stav
-    FROM ukoly
-    WHERE stav IN ('Nezahájeno', 'Probíhá')
-    ORDER BY id
-    """
-
-    try:
-        cursor = connection.cursor()
-        cursor.execute(query)
-        ukoly = cursor.fetchall()
-        cursor.close()
-
-        if not ukoly:
-            print("Seznam úkolů je prázdný.")
-            return
-
-        print("\n--- SEZNAM ÚKOLŮ ---")
-        for ukol in ukoly:
-            print(
-                f"ID: {ukol[0]} | Název: {ukol[1]} | "
-                f"Popis: {ukol[2]} | Stav: {ukol[3]}"
-            )
-
-    except Error as e:
-        print(f"Chyba při zobrazování úkolů: {e}")
+    assert ukol is not None
+    assert ukol[0] == "Nakoupit"
+    assert ukol[1] == "Koupit mléko"
+    assert ukol[2] == "Nezahájeno"
 
 
-def zobraz_vsechny_ukoly(connection):
-    """
-    Zobrazí všechny úkoly bez filtru.
-    """
-    query = """
-    SELECT id, nazev, popis, stav
-    FROM ukoly
-    ORDER BY id
-    """
+def test_pridat_ukol_negativni(test_connection):
+    vysledek = pridat_ukol_db(test_connection, "", "Nějaký popis")
 
-    try:
-        cursor = connection.cursor()
-        cursor.execute(query)
-        ukoly = cursor.fetchall()
-        cursor.close()
+    assert vysledek is False
 
-        if not ukoly:
-            print("Seznam úkolů je prázdný.")
-            return []
+    cursor = test_connection.cursor()
+    cursor.execute("SELECT COUNT(*) FROM ukoly")
+    pocet = cursor.fetchone()[0]
+    cursor.close()
 
-        print("\n--- VŠECHNY ÚKOLY ---")
-        for ukol in ukoly:
-            print(
-                f"ID: {ukol[0]} | Název: {ukol[1]} | "
-                f"Popis: {ukol[2]} | Stav: {ukol[3]}"
-            )
-
-        return ukoly
-
-    except Error as e:
-        print(f"Chyba při zobrazování úkolů: {e}")
-        return []
+    assert pocet == 0
 
 
-def aktualizovat_ukol_db(connection, ukol_id, novy_stav):
-    """
-    Aktualizuje stav úkolu podle ID.
-    Vrací True při úspěchu, jinak False.
-    """
-    povolene_stavy = ["Probíhá", "Hotovo"]
+def test_aktualizovat_ukol_pozitivni(test_connection):
+    pridat_ukol_db(test_connection, "Úkol 1", "Popis 1")
 
-    if novy_stav not in povolene_stavy:
-        return False
+    cursor = test_connection.cursor()
+    cursor.execute("SELECT id FROM ukoly WHERE nazev = %s", ("Úkol 1",))
+    ukol_id = cursor.fetchone()[0]
+    cursor.close()
 
-    try:
-        cursor = connection.cursor()
-        cursor.execute("SELECT id FROM ukoly WHERE id = %s", (ukol_id,))
-        existuje = cursor.fetchone()
+    vysledek = aktualizovat_ukol_db(test_connection, ukol_id, "Probíhá")
+    assert vysledek is True
 
-        if not existuje:
-            cursor.close()
-            return False
+    cursor = test_connection.cursor()
+    cursor.execute("SELECT stav FROM ukoly WHERE id = %s", (ukol_id,))
+    stav = cursor.fetchone()[0]
+    cursor.close()
 
-        cursor.execute(
-            "UPDATE ukoly SET stav = %s WHERE id = %s",
-            (novy_stav, ukol_id)
-        )
-        connection.commit()
-        cursor.close()
-        return True
-
-    except Error as e:
-        print(f"Chyba při aktualizaci úkolu: {e}")
-        return False
+    assert stav == "Probíhá"
 
 
-def aktualizovat_ukol(connection):
-    """
-    Načte od uživatele ID a nový stav a provede aktualizaci.
-    Při neplatném vstupu se ptá znovu.
-    """
-    while True:
-        ukoly = zobraz_vsechny_ukoly(connection)
-        if not ukoly:
-            return
-
-        try:
-            ukol_id = int(input("\nZadej ID úkolu, který chceš aktualizovat: "))
-        except ValueError:
-            print("ID musí být číslo. Zkus to znovu.")
-            continue
-
-        print("\nVyber nový stav:")
-        print("1. Probíhá")
-        print("2. Hotovo")
-
-        volba = input("Tvoje volba: ").strip()
-
-        if volba == "1":
-            novy_stav = "Probíhá"
-        elif volba == "2":
-            novy_stav = "Hotovo"
-        else:
-            print("Neplatná volba stavu. Zkus to znovu.")
-            continue
-
-        if aktualizovat_ukol_db(connection, ukol_id, novy_stav):
-            print("Stav úkolu byl úspěšně aktualizován.")
-            break
-
-        print("Úkol s tímto ID neexistuje. Zkus to znovu.")
+def test_aktualizovat_ukol_negativni(test_connection):
+    vysledek = aktualizovat_ukol_db(test_connection, 99999, "Hotovo")
+    assert vysledek is False
 
 
-def odstranit_ukol_db(connection, ukol_id):
-    """
-    Odstraní úkol podle ID.
-    Vrací True při úspěchu, jinak False.
-    """
-    try:
-        cursor = connection.cursor()
-        cursor.execute("SELECT id FROM ukoly WHERE id = %s", (ukol_id,))
-        existuje = cursor.fetchone()
+def test_odstranit_ukol_pozitivni(test_connection):
+    pridat_ukol_db(test_connection, "Smazat", "Tento úkol zmizí")
 
-        if not existuje:
-            cursor.close()
-            return False
+    cursor = test_connection.cursor()
+    cursor.execute("SELECT id FROM ukoly WHERE nazev = %s", ("Smazat",))
+    ukol_id = cursor.fetchone()[0]
+    cursor.close()
 
-        cursor.execute("DELETE FROM ukoly WHERE id = %s", (ukol_id,))
-        connection.commit()
-        cursor.close()
-        return True
+    vysledek = odstranit_ukol_db(test_connection, ukol_id)
+    assert vysledek is True
 
-    except Error as e:
-        print(f"Chyba při odstraňování úkolu: {e}")
-        return False
+    cursor = test_connection.cursor()
+    cursor.execute("SELECT * FROM ukoly WHERE id = %s", (ukol_id,))
+    ukol = cursor.fetchone()
+    cursor.close()
+
+    assert ukol is None
 
 
-def odstranit_ukol(connection):
-    """
-    Načte od uživatele ID a odstraní úkol.
-    Při neplatném vstupu se ptá znovu.
-    """
-    while True:
-        ukoly = zobraz_vsechny_ukoly(connection)
-        if not ukoly:
-            return
-
-        try:
-            ukol_id = int(input("\nZadej ID úkolu, který chceš odstranit: "))
-        except ValueError:
-            print("ID musí být číslo. Zkus to znovu.")
-            continue
-
-        potvrzeni = input(
-            "Opravdu chceš tento úkol smazat? (ano/ne): "
-        ).strip().lower()
-
-        if potvrzeni != "ano":
-            print("Mazání bylo zrušeno.")
-            return
-
-        if odstranit_ukol_db(connection, ukol_id):
-            print("Úkol byl úspěšně odstraněn.")
-            break
-
-        print("Úkol s tímto ID neexistuje. Zkus to znovu.")
+def test_odstranit_ukol_negativni(test_connection):
+    vysledek = odstranit_ukol_db(test_connection, 99999)
+    assert vysledek is False
